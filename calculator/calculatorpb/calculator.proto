@@ -1,0 +1,30 @@
+syntax = "proto3";
+package calculator;
+
+option go_package="./calculator/calculatorpb";
+
+enum Operation {
+    OPCODE_SUM = 0;
+    OPCODE_SUB = 1;
+    OPCODE_MUL = 2;
+    OPCODE_DIV = 3;
+}
+
+message OperationArgs {
+    Operation operation = 1;
+    float value1 = 2;
+    float value2 = 3;
+}
+
+message OperationRequest {
+    OperationArgs operation_args = 1;
+}
+
+message OperationResponse {
+    float result = 1;
+}
+
+service CalculatorService {
+    // Unary GRPC
+    rpc Calculate(OperationRequest) returns (OperationResponse) {};
+}
