@@ -24,7 +24,17 @@ message OperationResponse {
     float result = 1;
 }
 
+message PrimeNumberDecompositionRequest {
+    uint32 number = 1;
+}
+
+message PrimeNumberDecompositionResponse {
+    uint32 prime = 1;
+}
+
 service CalculatorService {
     // Unary GRPC
     rpc Calculate(OperationRequest) returns (OperationResponse) {};
+    // Server Streaming GRPC
+    rpc PrimeNumberDecomposition(PrimeNumberDecompositionRequest) returns (stream PrimeNumberDecompositionResponse) {};
 }

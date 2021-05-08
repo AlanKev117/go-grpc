@@ -44,6 +44,22 @@ func (*server) Calculate(ctx context.Context, req *calculatorpb.OperationRequest
 	return result, nil
 }
 
+func (*server) PrimeNumberDecomposition(req *calculatorpb.PrimeNumberDecompositionRequest, stream calculatorpb.CalculatorService_PrimeNumberDecompositionServer) error {
+	number := req.GetNumber()
+	prime := uint32(2)
+	for number > 1 {
+		if number%prime == 0 {
+			stream.Send(&calculatorpb.PrimeNumberDecompositionResponse{
+				Prime: prime,
+			})
+			number /= prime
+		} else {
+			prime++
+		}
+	}
+	return nil
+}
+
 func main() {
 	lis, err := net.Listen("tcp", "0.0.0.0:50051")
 
