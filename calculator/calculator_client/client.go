@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"time"
 
 	"github.com/AlanKev117/go-grpc/calculator/calculatorpb"
 	"google.golang.org/grpc"
 )
 
 func doOperation(c calculatorpb.CalculatorServiceClient, opcode calculatorpb.Operation, value1 float32, value2 float32) {
-
+	log.Printf("Executing Operation %v\n", opcode)
 	req := &calculatorpb.OperationRequest{
 		OperationArgs: &calculatorpb.OperationArgs{
 			Operation: opcode,
@@ -25,10 +26,11 @@ func doOperation(c calculatorpb.CalculatorServiceClient, opcode calculatorpb.Ope
 	if err != nil {
 		log.Fatalf("Error while calling Calculate from server: %v", err)
 	}
-	log.Printf("Response from server Calculate: %v", res.Result)
+	fmt.Printf("Response from server Calculate: %v", res.Result)
 }
 
 func doGetPrimeFactors(c calculatorpb.CalculatorServiceClient, number uint32) {
+	log.Printf("Calculating prime factors for %v", number)
 	req := &calculatorpb.PrimeNumberDecompositionRequest{
 		Number: number,
 	}
@@ -57,6 +59,29 @@ func doGetPrimeFactors(c calculatorpb.CalculatorServiceClient, number uint32) {
 	fmt.Printf("%v\n", primes)
 }
 
+func doCalculateAverage(c calculatorpb.CalculatorServiceClient, numbers []int32) {
+
+	log.Printf("Calculating average for %v values", len(numbers))
+
+	stream, err := c.ComputeAverage(context.Background())
+	for _, number := range numbers {
+		log.Printf("sending %v to server", number)
+		stream.Send(&calculatorpb.ComputeAverageRequest{
+			Number: number,
+		})
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	res, err := stream.CloseAndRecv()
+	if err != nil {
+		log.Fatalf("error while receiving average: %v", err)
+	}
+
+	average := res.GetAverage()
+
+	fmt.Printf("Average for %v is: %v\n", numbers, average)
+}
+
 func main() {
 	conn, err := grpc.Dial("localhost:50051", grpc.WithInsecure())
 
@@ -69,4 +94,5 @@ func main() {
 
 	doOperation(c, calculatorpb.Operation_OPCODE_SUM, 23, 54)
 	doGetPrimeFactors(c, 1)
+	doCalculateAverage(c, []int32{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})
 }

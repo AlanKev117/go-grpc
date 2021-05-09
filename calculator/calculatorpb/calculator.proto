@@ -32,9 +32,19 @@ message PrimeNumberDecompositionResponse {
     uint32 prime = 1;
 }
 
+message ComputeAverageRequest {
+    int32 number = 1;
+}
+
+message ComputeAverageResponse {
+    double average = 1;
+}
+
 service CalculatorService {
-    // Unary GRPC
+    // Unary gRPC
     rpc Calculate(OperationRequest) returns (OperationResponse) {};
-    // Server Streaming GRPC
+    // Server Streaming gRPC
     rpc PrimeNumberDecomposition(PrimeNumberDecompositionRequest) returns (stream PrimeNumberDecompositionResponse) {};
+    // Client Streaming gRPC
+    rpc ComputeAverage(stream ComputeAverageRequest) returns (ComputeAverageResponse) {};
 }
