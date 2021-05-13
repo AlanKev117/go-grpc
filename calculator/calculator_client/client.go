@@ -61,7 +61,7 @@ func doGetPrimeFactors(c calculatorpb.CalculatorServiceClient, number uint32) {
 
 func doCalculateAverage(c calculatorpb.CalculatorServiceClient, numbers []int32) {
 
-	log.Printf("Calculating average for %v values", len(numbers))
+	log.Printf("Calculating average for %v numbers", len(numbers))
 
 	stream, err := c.ComputeAverage(context.Background())
 	for _, number := range numbers {
@@ -82,6 +82,49 @@ func doCalculateAverage(c calculatorpb.CalculatorServiceClient, numbers []int32)
 	fmt.Printf("Average for %v is: %v\n", numbers, average)
 }
 
+func doGetMaximumValues(c calculatorpb.CalculatorServiceClient, numbers []int32) {
+	log.Printf("Calculating max values for %v numbers\n", len(numbers))
+
+	stream, err := c.FindMaximum(context.Background())
+
+	if err != nil {
+		log.Fatalf("Error while getting stream from client: %v", err)
+	}
+
+	waitc := make(chan struct{})
+
+	// Sending each value
+	go func() {
+		for _, number := range numbers {
+			fmt.Printf("Sending %v to server.\n", number)
+			stream.Send(&calculatorpb.FindMaximumRequest{
+				Number: number,
+			})
+			time.Sleep(200 * time.Millisecond)
+		}
+		stream.CloseSend()
+	}()
+
+	// Receiving and handling new max value
+	go func() {
+		defer close(waitc)
+		for {
+			res, err := stream.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				log.Fatalf("Error while receiving server response: %v", err)
+			}
+			nextMaximum := res.GetMaximum()
+			fmt.Printf("Received new max value: %v\n", nextMaximum)
+		}
+	}()
+
+	<-waitc
+
+}
+
 func main() {
 	conn, err := grpc.Dial("localhost:50051", grpc.WithInsecure())
 
@@ -95,4 +138,5 @@ func main() {
 	doOperation(c, calculatorpb.Operation_OPCODE_SUM, 23, 54)
 	doGetPrimeFactors(c, 1)
 	doCalculateAverage(c, []int32{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})
+	doGetMaximumValues(c, []int32{1, 5, 3, 6, 2, 20})
 }

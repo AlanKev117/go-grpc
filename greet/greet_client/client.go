@@ -99,6 +99,66 @@ func doClientStreaming(c greetpb.GreetServiceClient) {
 	fmt.Println(res.GetResult())
 }
 
+func doBiDirectionalStreaming(c greetpb.GreetServiceClient) {
+	fmt.Println("Starting a client streaming gRPC operation...")
+
+	stream, err := c.GreetEveryone(context.Background())
+
+	if err != nil {
+		log.Fatalf("Error while creating stream: %v", err)
+	}
+
+	requests := []*greetpb.GreetEveryoneRequest{
+		&greetpb.GreetEveryoneRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName:  "Alan",
+				SecondName: "Kevin",
+			},
+		},
+		&greetpb.GreetEveryoneRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName:  "Dani",
+				SecondName: "Elías",
+			},
+		},
+		&greetpb.GreetEveryoneRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName:  "Esteban",
+				SecondName: "Damián",
+			},
+		},
+	}
+
+	waitc := make(chan struct{})
+
+	// Sending messages to the server
+	go func() {
+		for _, req := range requests {
+			log.Printf("Sending message: %v\n", req)
+			stream.Send(req)
+			time.Sleep(200 * time.Millisecond)
+		}
+		stream.CloseSend()
+	}()
+
+	// Receiving responses from the server
+	go func() {
+		defer close(waitc)
+		for {
+			res, err := stream.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				log.Fatalf("Error while receiving response from server: %v", err)
+				break
+			}
+			fmt.Printf("Greeting received: %v\n", res.GetResult())
+		}
+	}()
+	<-waitc
+}
+
 func main() {
 	conn, err := grpc.Dial("localhost:50051", grpc.WithInsecure())
 	if err != nil {
@@ -111,4 +171,5 @@ func main() {
 	doUnary(c)
 	doServerStreaming(c)
 	doClientStreaming(c)
+	doBiDirectionalStreaming(c)
 }
