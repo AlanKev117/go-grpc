@@ -21,6 +21,7 @@ func doOperation(c calculatorpb.CalculatorServiceClient, opcode calculatorpb.Ope
 		},
 	}
 
+	// Single request and response
 	res, err := c.Calculate(context.Background(), req)
 
 	if err != nil {
@@ -43,6 +44,7 @@ func doGetPrimeFactors(c calculatorpb.CalculatorServiceClient, number uint32) {
 
 	primes := []uint32{}
 
+	// Receiving primes from server stream
 	for {
 		res, err := resStream.Recv()
 		if err == io.EOF {
@@ -55,6 +57,7 @@ func doGetPrimeFactors(c calculatorpb.CalculatorServiceClient, number uint32) {
 		primes = append(primes, res.GetPrime())
 	}
 
+	// Handling data gotten from server
 	fmt.Printf("Prime factors of %v are: \n", number)
 	fmt.Printf("%v\n", primes)
 }
@@ -64,6 +67,12 @@ func doCalculateAverage(c calculatorpb.CalculatorServiceClient, numbers []int32)
 	log.Printf("Calculating average for %v numbers", len(numbers))
 
 	stream, err := c.ComputeAverage(context.Background())
+
+	if err != nil {
+		log.Fatalf("Error while getting stream for client: %v", err)
+	}
+
+	// Sending values to calculate average
 	for _, number := range numbers {
 		log.Printf("sending %v to server", number)
 		stream.Send(&calculatorpb.ComputeAverageRequest{
@@ -72,6 +81,7 @@ func doCalculateAverage(c calculatorpb.CalculatorServiceClient, numbers []int32)
 		time.Sleep(100 * time.Millisecond)
 	}
 
+	// Receiving average
 	res, err := stream.CloseAndRecv()
 	if err != nil {
 		log.Fatalf("error while receiving average: %v", err)
@@ -88,7 +98,7 @@ func doGetMaximumValues(c calculatorpb.CalculatorServiceClient, numbers []int32)
 	stream, err := c.FindMaximum(context.Background())
 
 	if err != nil {
-		log.Fatalf("Error while getting stream from client: %v", err)
+		log.Fatalf("Error while getting stream for client: %v", err)
 	}
 
 	waitc := make(chan struct{})
@@ -121,8 +131,8 @@ func doGetMaximumValues(c calculatorpb.CalculatorServiceClient, numbers []int32)
 		}
 	}()
 
+	// Finish function after async streaming
 	<-waitc
-
 }
 
 func main() {
